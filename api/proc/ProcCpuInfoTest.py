@@ -28,7 +28,7 @@ class ProcCpuInfoTest(KernelProcFileTestBase.KernelProcFileTestBase):
     '''
 
     EXPECTED_FIELDS = [
-        ['processor', ['\t']],
+        'processor'
     ]
 
     start = 'lines'
@@ -43,12 +43,12 @@ class ProcCpuInfoTest(KernelProcFileTestBase.KernelProcFileTestBase):
 
     p_lines = repeat_rule('line')
     p_string_spaces = repeat_rule('string_space', zero_ok=True)
-    p_space_items = repeat_rule('space_item', zero_ok=True)
+    p_field_values = repeat_rule('field_value', zero_ok=True)
     p_TABs = repeat_rule('TAB', zero_ok=True)
 
     def p_line(self, p):
-        '''line : string_spaces STRING TABs COLON space_items SPACE NEWLINE
-                | string_spaces STRING TABs COLON space_items NEWLINE
+        '''line : string_spaces STRING TABs COLON field_values SPACE NEWLINE
+                | string_spaces STRING TABs COLON field_values NEWLINE
                 | NEWLINE'''
         if len(p) == 2:
             p[0] = []
@@ -59,16 +59,30 @@ class ProcCpuInfoTest(KernelProcFileTestBase.KernelProcFileTestBase):
         'space_item : SPACE STRING'
         p[0] = p[2]
 
+    def p_double_space_item(self, p):
+        'double_space_item : SPACE SPACE STRING'
+        p[0] = p[3]
+
     def p_string_space(self, p):
         'string_space : STRING SPACE'
+        p[0] = p[1]
+
+    def p_colon_item(self, p):
+        'colon_item : SPACE STRING COLON SPACE STRING'
+        p[0] = p[1] + p[2] + p[3] + p[4]
+
+    def p_field_value(self, p):
+        '''field_value : space_item
+                       | double_space_item
+                       | colon_item'''
         p[0] = p[1]
 
     def result_correct(self, parse_result):
         expected_fields = self.EXPECTED_FIELDS[:]
         for line in parse_result:
             if len(line) > 0:
-                if line[0] in expected_fields:
-                    expected_fields.remove(line[0])
+                if line[0][0] in expected_fields:
+                    expected_fields.remove(line[0][0])
         return len(expected_fields) == 0
 
     def get_path(self):
